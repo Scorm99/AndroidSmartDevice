@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.widget.Button
+import fr.isen.faury.androidsmartdevice.R
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.ArrayAdapter
@@ -13,6 +14,10 @@ import androidx.appcompat.app.AppCompatActivity
 import android.widget.LinearLayout
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothSocket
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -24,6 +29,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
@@ -35,103 +41,161 @@ import java.util.UUID
 class ConnectActivity : AppCompatActivity() {
 
     private lateinit var connectButton: Button
+    private lateinit var led1Button: Button
+    private lateinit var led2Button: Button
+    private lateinit var led3Button: Button
     private lateinit var connectionStatusText: TextView
     private var deviceAddress: String? = null
-    private val PERMISSION_REQUEST_CODE = 1001
+    private var bluetoothGatt: BluetoothGatt? = null
+
+    companion object {
+        private var bluetoothGatt: BluetoothGatt? = null
+        private const val REQUEST_BLUETOOTH_CONNECT = 1
+
+        // ⚡ UUIDs à modifier si nécessaire
+        val service = bluetoothGatt?.getService(UUID.fromString("0000feed-cc7a-482a-984a-7f2ed5b3e58f"))
+        val characteristic = service?.getCharacteristic(UUID.fromString("0000abcd-8e22-4541-9d4c-21edae82ed19"))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_connect)
 
-        // Initialiser les vues
+        // Initialisation des boutons et du texte
         connectButton = findViewById(R.id.connectButton)
+        led1Button = findViewById(R.id.led1Button)
+        led2Button = findViewById(R.id.led2Button)
+        led3Button = findViewById(R.id.led3Button)
         connectionStatusText = findViewById(R.id.connectionStatusText)
 
-        // Récupérer l'adresse du périphérique à partir de l'intent
         deviceAddress = intent.getStringExtra("deviceAddress")
+        connectionStatusText.text = "Connexion en cours..."
 
-        // Afficher l'adresse de l'appareil
-        connectionStatusText.text = "Connexion à : $deviceAddress"
-
-        // Vérifier les permissions au lancement
-        checkPermissions()
-
-        // Lancer la connexion au périphérique Bluetooth
         connectButton.setOnClickListener {
-            deviceAddress?.let {
-                connectToDevice(it)
-            }
+            connectToDevice()
         }
+
+        // Ajout des listeners pour les LEDs
+        led1Button.setOnClickListener { toggleLed(0x01) }
+        led2Button.setOnClickListener { toggleLed(0x02) }
+        led3Button.setOnClickListener { toggleLed(0x03) }
     }
 
-    private fun checkPermissions() {
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // Demander la permission pour Bluetooth
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
-                PERMISSION_REQUEST_CODE
-            )
-        }
-    }
-
-    private fun connectToDevice(deviceAddress: String) {
-        // Vérifier à nouveau si la permission est accordée avant de tenter la connexion
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // Si la permission n'est pas accordée, demander à l'utilisateur
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
-                PERMISSION_REQUEST_CODE
-            )
+    private fun connectToDevice() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), REQUEST_BLUETOOTH_CONNECT)
             return
         }
 
         val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-
         val device = bluetoothAdapter.getRemoteDevice(deviceAddress)
 
-        // Créer le socket Bluetooth RFCOMM
-        val bluetoothSocket: BluetoothSocket? = device.createRfcommSocketToServiceRecord(MY_UUID)
+        bluetoothGatt = device.connectGatt(this, false, object : BluetoothGattCallback() {
+            override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                runOnUiThread {
+                    when (newState) {
+                        BluetoothProfile.STATE_CONNECTED -> {
+                            connectionStatusText.text = "Connecté à $deviceAddress"
+                            connectButton.isEnabled = false
 
-        try {
-            // Tentative de connexion
-            bluetoothSocket?.connect()
-            connectionStatusText.text = "Connecté à $deviceAddress"
-        } catch (e: IOException) {
-            e.printStackTrace()
-            connectionStatusText.text = "Échec de la connexion"
+                            if (ActivityCompat.checkSelfPermission(
+                                    this@ConnectActivity, // CORRECTION ICI
+                                    Manifest.permission.BLUETOOTH_CONNECT
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                ActivityCompat.requestPermissions(
+                                    this@ConnectActivity,
+                                    arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+                                    REQUEST_BLUETOOTH_CONNECT
+                                )
+                                return@runOnUiThread
+                            }
+
+                            gatt.discoverServices()
+                        }
+
+                        BluetoothProfile.STATE_DISCONNECTED -> {
+                            connectionStatusText.text = "Déconnecté"
+                            connectButton.isEnabled = true
+                            bluetoothGatt = null
+                        }
+                    }
+                }
+            }
+
+            override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    Log.d("BLE", "Services BLE découverts :")
+                    for (service in gatt.services) {
+                        Log.d("BLE", "Service trouvé: ${service.uuid}")
+                        for (characteristic in service.characteristics) {
+                            Log.d("BLE", "  ↳ Caractéristique: ${characteristic.uuid} | Properties: ${characteristic.properties}")
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    private fun toggleLed(ledValue: Byte) {
+        Log.d("BLE", "Tentative d'allumage de la LED $ledValue")
+
+        if (bluetoothGatt == null) {
+            Log.e("BLE", "Bluetooth GATT non connecté")
+            Toast.makeText(this, "Non connecté au périphérique", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val ledService = bluetoothGatt?.getService(UUID.fromString("0000feed-cc7a-482a-984a-7f2ed5b3e58f"))
+        if (ledService == null) {
+            Log.e("BLE", "Service LED introuvable")
+            Toast.makeText(this, "Service LED introuvable", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val ledCharacteristic = ledService.getCharacteristic(UUID.fromString("0000abcd-8e22-4541-9d4c-21edae82ed19"))
+        if (ledCharacteristic == null) {
+            Log.e("BLE", "Caractéristique LED introuvable")
+            Toast.makeText(this, "Caractéristique LED introuvable", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        ledCharacteristic.value = byteArrayOf(ledValue)
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            Log.e("BLE", "Permission Bluetooth manquante")
+            return
+        }
+
+        val success = bluetoothGatt?.writeCharacteristic(ledCharacteristic) ?: false
+        if (success) {
+            Log.d("BLE", "Commande envoyée avec succès pour la LED $ledValue")
+            Toast.makeText(this, "LED $ledValue activée", Toast.LENGTH_SHORT).show()
+        } else {
+            Log.e("BLE", "Échec de l'envoi de la commande LED")
+            Toast.makeText(this, "Impossible de contrôler la LED", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Gérer la réponse de la demande de permission dans onRequestPermissionsResult
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == PERMISSION_REQUEST_CODE) {
+        if (requestCode == REQUEST_BLUETOOTH_CONNECT) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission accordée, on peut essayer de se connecter au périphérique
-                deviceAddress?.let {
-                    connectToDevice(it)
-                }
+                connectToDevice()
             } else {
-                // Permission refusée
-                Toast.makeText(this, "Permission Bluetooth refusée", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Permission Bluetooth requise", Toast.LENGTH_SHORT).show()
             }
         }
     }
-
-    companion object {
-        private val MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB") // UUID générique SPP
-    }
 }
+
+
+
+
+
+
+
+
+
+
+

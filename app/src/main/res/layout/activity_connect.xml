@@ -5,16 +5,55 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <!-- Statut de connexion -->
     <TextView
         android:id="@+id/connectionStatusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="En attente de connexion..."
-        android:textSize="18sp" />
+        android:text="Connexion en cours..."
+        android:textSize="18sp"
+        android:paddingBottom="10dp"/>
 
+    <!-- Bouton pour se connecter -->
     <Button
         android:id="@+id/connectButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Se connecter" />
+        android:text="Se connecter"/>
+
+    <!-- Boutons pour allumer/éteindre les LEDs -->
+    <Button
+        android:id="@+id/led1Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="LED 1"/>
+
+    <Button
+        android:id="@+id/led2Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="LED 2"/>
+
+    <Button
+        android:id="@+id/led3Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="LED 3"/>
+
+    <!-- Affichage du nombre de clics sur les boutons -->
+    <TextView
+        android:id="@+id/button1ClicksText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Clics sur bouton 1 : 0"
+        android:textSize="16sp"
+        android:paddingTop="20dp"/>
+
+    <TextView
+        android:id="@+id/button3ClicksText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Clics sur bouton 3 : 0"
+        android:textSize="16sp"/>
+
 </LinearLayout>
