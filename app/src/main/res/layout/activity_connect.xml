@@ -22,23 +22,36 @@
         android:text="Se connecter"/>
 
     <!-- Boutons pour allumer/éteindre les LEDs -->
-    <Button
+    <ImageButton
         android:id="@+id/led1Button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="LED 1"/>
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:src="@drawable/bulb_off"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_gravity="center"
+        android:scaleType="fitCenter"
+        android:contentDescription="LED 1"/>
 
-    <Button
+    <ImageButton
         android:id="@+id/led2Button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="LED 2"/>
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:src="@drawable/bulb_off"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_gravity="center"
+        android:scaleType="fitCenter"
+        android:contentDescription="LED 2"/>
 
-    <Button
+    <ImageButton
         android:id="@+id/led3Button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="LED 3"/>
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:src="@drawable/bulb_off"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_gravity="center"
+        android:scaleType="fitCenter"
+        android:contentDescription="LED 3"/>
+
 
     <!-- Affichage du nombre de clics sur les boutons -->
     <TextView
@@ -55,5 +68,17 @@
         android:layout_height="wrap_content"
         android:text="Clics sur bouton 3 : 0"
         android:textSize="16sp"/>
+
+    <CheckBox
+        android:id="@+id/button1CheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Afficher les clics du bouton 1" />
+
+    <CheckBox
+        android:id="@+id/button3CheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Afficher les clics du bouton 3" />
 
 </LinearLayout>

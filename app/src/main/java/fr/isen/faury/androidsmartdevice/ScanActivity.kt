@@ -2,30 +2,19 @@ package fr.isen.faury.androidsmartdevice
 
 import android.Manifest
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.view.Gravity
 import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
-import android.widget.LinearLayout
-
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 

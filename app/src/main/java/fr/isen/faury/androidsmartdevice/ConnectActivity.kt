@@ -1,54 +1,39 @@
 package fr.isen.faury.androidsmartdevice
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.Gravity
 import android.widget.Button
-import fr.isen.faury.androidsmartdevice.R
-import android.widget.ListView
 import android.widget.TextView
-import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
-import android.widget.LinearLayout
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
-import android.bluetooth.BluetoothSocket
-import android.bluetooth.le.BluetoothLeScanner
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
-import android.bluetooth.le.ScanResult
-import android.bluetooth.le.ScanSettings
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.util.Log
+import android.widget.CheckBox
+import android.widget.ImageButton
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.MutableLiveData
-import java.io.IOException
 import java.util.UUID
 
 
 class ConnectActivity : AppCompatActivity() {
 
     private lateinit var connectButton: Button
-    private lateinit var led1Button: Button
-    private lateinit var led2Button: Button
-    private lateinit var led3Button: Button
+    private lateinit var led1Button: ImageButton
+    private lateinit var led2Button: ImageButton
+    private lateinit var led3Button: ImageButton
     private lateinit var connectionStatusText: TextView
     private lateinit var button1ClicksText: TextView
     private lateinit var button3ClicksText: TextView
+    private lateinit var button1CheckBox: CheckBox
+    private lateinit var button3CheckBox: CheckBox
 
     private var deviceAddress: String? = null
     private var bluetoothGatt: BluetoothGatt? = null
@@ -57,13 +42,6 @@ class ConnectActivity : AppCompatActivity() {
     private var button1ClickCount = 0
     private var button3ClickCount = 0
 
-    // Gestion de l'état des notifications pour chaque bouton
-    private val isSubscribedButton1 = MutableLiveData<Boolean>()
-    private val isSubscribedButton3 = MutableLiveData<Boolean>()
-
-    // Gestion des notifications à ignorer
-    private var skipNextNotification1 = false
-    private var skipNextNotification3 = false
 
     // État des LEDs
     private val ledStates = mutableMapOf(
@@ -90,6 +68,8 @@ class ConnectActivity : AppCompatActivity() {
         connectionStatusText = findViewById(R.id.connectionStatusText)
         button1ClicksText = findViewById(R.id.button1ClicksText)
         button3ClicksText = findViewById(R.id.button3ClicksText)
+        button1CheckBox = findViewById(R.id.button1CheckBox)
+        button3CheckBox = findViewById(R.id.button3CheckBox)
 
         deviceAddress = intent.getStringExtra("deviceAddress")
         connectionStatusText.text = "Connexion en cours..."
@@ -170,22 +150,34 @@ class ConnectActivity : AppCompatActivity() {
                 }
             }
 
+            //Méthode dépréciée pour Android < 13
+            @SuppressLint("MissingPermission", "Deprecation")
+            override fun onCharacteristicChanged(
+                gatt: BluetoothGatt,
+                characteristic: BluetoothGattCharacteristic?
+            ) {
+                super.onCharacteristicChanged(gatt, characteristic)
+                characteristic?.let { char ->
+                    onCharacteristicChanged(gatt, char, char.value ?: byteArrayOf())
+                }
+            }
+
 
             override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
                 runOnUiThread {
                     when (characteristic.uuid.toString()) {
                         "00001234-8e22-4541-9d4c-21edae82ed19" -> {
-                            button1ClickCount++
-                            button1ClicksText.text = "Clics sur bouton 1 : $button1ClickCount"
-                            Log.d("BLE", "Compteur bouton 1 = $button1ClickCount")
+                            if (button1CheckBox.isChecked) {
+                                button1ClickCount++
+                                button1ClicksText.text = "Clics sur bouton 1 : $button1ClickCount"
+                            }
                         }
-
                         "0000cdef-8e22-4541-9d4c-21edae82ed19" -> {
-                            button3ClickCount++
-                            button3ClicksText.text = "Clics sur bouton 3 : $button3ClickCount"
-                            Log.d("BLE", "Compteur bouton 3 = $button3ClickCount")
+                            if (button3CheckBox.isChecked) {
+                                button3ClickCount++
+                                button3ClicksText.text = "Clics sur bouton 3 : $button3ClickCount"
+                            }
                         }
-
                         else -> Log.d("BLE", "Notification reçue mais UUID inconnu")
                     }
                 }
@@ -260,9 +252,18 @@ class ConnectActivity : AppCompatActivity() {
             return
         }
 
+        val button = when (ledValue) {
+            0x01.toByte() -> led1Button
+            0x02.toByte() -> led2Button
+            0x03.toByte() -> led3Button
+            else -> return
+        }
+
         // Basculement de l'état de la LED
         val newState = !(ledStates[ledValue] ?: false)
         val command = if (newState) ledValue else 0x00.toByte()
+        ledStates[ledValue] = newState
+        button.setImageResource(if (newState) R.drawable.bulb_on else R.drawable.bulb_off)
 
         ledCharacteristic.value = byteArrayOf(command)
 
@@ -281,6 +282,9 @@ class ConnectActivity : AppCompatActivity() {
             Log.e("BLE", "Échec de l'envoi de la commande LED")
             Toast.makeText(this, "Impossible de contrôler la LED", Toast.LENGTH_SHORT).show()
         }
+
+
+
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -294,6 +298,7 @@ class ConnectActivity : AppCompatActivity() {
         }
     }
 }
+
 
 
 
