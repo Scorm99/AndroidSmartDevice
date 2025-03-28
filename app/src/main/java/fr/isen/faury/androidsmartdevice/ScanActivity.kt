@@ -35,7 +35,7 @@ class ScanActivity : AppCompatActivity() {
     private lateinit var scanStatusText: TextView
     private lateinit var devicesListView: ListView
 
-    private val PERMISSION_REQUEST_CODE = 1001
+    private val permissionRequestCode = 1001
 
     private val scannedDevices = mutableListOf<String>()
     private val adapter by lazy { ArrayAdapter(this, android.R.layout.simple_list_item_1, scannedDevices) }
@@ -54,7 +54,7 @@ class ScanActivity : AppCompatActivity() {
                 ActivityCompat.requestPermissions(
                     this@ScanActivity,
                     arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
-                    PERMISSION_REQUEST_CODE
+                    permissionRequestCode
                 )
                 return
             }
@@ -149,7 +149,7 @@ class ScanActivity : AppCompatActivity() {
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
-                    PERMISSION_REQUEST_CODE
+                    permissionRequestCode
                 )
                 return false // Bluetooth ne peut pas être activé tant que la permission n'est pas accordée
             }
@@ -167,7 +167,7 @@ class ScanActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        if (requestCode == PERMISSION_REQUEST_CODE) {
+        if (requestCode == permissionRequestCode) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // Permission accordée, continuer à activer le Bluetooth ou scanner
                 checkBluetoothEnabled()
